@@ -1,0 +1,19 @@
+{% extends 'bootstrap/base.html' %}
+
+{% block title %}
+Index
+{% endblock %}
+
+{% block content %}
+<div class="input-group mb-3">
+  <form class="col-9" action="/search-result" method="post" enctype="multipart/form-data">
+    <input type="text" name="searchLabel" id="searchLabel" class="form-control" placeholder="Имя покемона" aria-describedby="button-addon2">
+    <button class="btn btn-outline-secondary" type="submit" id="button-addon2" >Поиск</button>
+  </form>
+</div>
+<ul class="list-group">
+  {% for pokemon in pokemonList %}
+    <li class="list-group-item">{{pokemon}}</li>
+  {% endfor %}
+</ul>
+{% endblock %}
