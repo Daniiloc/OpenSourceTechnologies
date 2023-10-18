@@ -1,0 +1,93 @@
+{% extends 'app.html' %}
+
+{% block content %}
+{{ super() }}
+<div class="container">
+    <div class="row justify-content-center mb-3 mt-3">
+        {% if not global_win %}
+        <div class="row row-cols-3 col-12">
+            <div class="card">
+                <img src="{{main_pokemon.image}}" class="card-img-top" alt="...">
+                <div class="card-body">
+                    <h5 class="card-title">{{session['main_pokemon']['name']}}</h5>
+                    <p class="card-text">HP: {{session['main_pokemon']['hp']}}</p>
+                    <p class="card-text">Attack: {{session['main_pokemon']['attack']}}</p>
+                </div>
+            </div>
+            <div class="card border-0">
+                {% if session['players_number'] %}
+                <div class="d-flex mt-3 justify-content-center fs-4 border rounded">
+                    <div class="d-flex justify-content-center align-items-center">
+                        Ваше число:&nbsp;
+                        <span class="fw-bolder">{{ session['players_number'] }}</span>
+                    </div>
+                </div>
+                {% else %}
+                <form class="d-flex mt-3 justify-content-center"
+                      action="{{ url_for('battle', main_pokemon_name=main_pokemon.name) }}"
+                      method="post"
+                      enctype="multipart/form-data">
+                    <ul class="list-group input-group">
+                        <li class="list-group-item"><label>Введите число от&nbsp;1&nbsp;до&nbsp;10:</label></li>
+                        <li class="list-group-item"><input class="form-control" name="players_number" type="number"
+                                                           min="1" max="10" step="1"
+                                                           required/></li>
+                        <li class="list-group-item">
+                            <button class="btn btn-primary" type="submit">Подтвердить</button>
+                        </li>
+                    </ul>
+                </form>
+                {% endif %}
+            </div>
+            <div class="card">
+                <img src="{{opponent_pokemon.image}}" class="card-img-top" alt="...">
+                <div class="card-body">
+                    <h5 class="card-title">{{session['opponent_pokemon']['name']}}</h5>
+                    <p class="card-text">HP: {{session['opponent_pokemon']['hp']}}</p>
+                    <p class="card-text">Attack: {{session['opponent_pokemon']['attack']}}</p>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="card col-12">
+            <div class="card-img-top col-12 d-flex justify-content-center">
+                <img src="{{ winner.image }}" alt="..." height="300px" width="300px">
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ winner.name }}</h5>
+                <p class="card-text">HP: {{ winner.hp }}</p>
+                <p class="card-text">Attack: {{ winner.attack }}</p>
+            </div>
+        </div>
+        {% endif %}
+        {% if global_win %}
+        <div class="d-flex flex-column col-12 mt-3 mb-3 border rounded justify-content-center align-items-center p-3">
+            <div class="fs-5"> {{ winner.name }} победил!</div>
+            <form class="col-12 d-flex justify-content-center p-2" action="{{ url_for('hello') }}" method="get"
+                  enctype="multipart/form-data">
+                <input type="hidden" name="ok_win">
+                <button class="col-12 btn btn-outline-secondary" type="submit">OK</button>
+            </form>
+        </div>
+        {% endif %}
+        {% if round_win == True or round_win == False %}
+        <div class="d-flex flex-column col-12 mt-3 mb-3 border rounded justify-content-center align-items-center p-3">
+            <div class="fs-5">
+                {% if round_win == True %}
+                {{ main_pokemon.name }}
+                {% elif round_win == False %}
+                {{ opponent_pokemon.name }}
+                {% endif %}
+                атакует!
+            </div>
+            <form class="col-12 d-flex justify-content-center p-2"
+                  action="{{ url_for('battle', main_pokemon_name=main_pokemon.name) }}" method="post"
+                  enctype="multipart/form-data">
+                <input type="hidden" name="ok">
+                <button class="col-12 btn btn-outline-secondary" type="submit">OK</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

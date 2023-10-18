@@ -1,0 +1,26 @@
+{% extends 'app.html' %}
+
+{% block content %}
+{{ super() }}
+
+<div class="container">
+    <div class="row justify-content-center mb-3 mt-3">
+        <div class="card col-12">
+            <div class="card-img-top col-6 d-flex justify-content-center">
+                <img src="{{pokemon.image}}" alt="..." height="300px" width="300px">
+            </div>
+            <div class="card-body">
+                <h5 class="card-title d-flex justify-content-center">{{pokemon.name}}</h5>
+                <p class="card-text col-12 d-flex flex-column align-items-center">
+                    <span> HP: {{pokemon.hp}} </span>
+                    <span> Attack: {{pokemon.attack}} </span>
+                    <span> Special-attack: {{pokemon.special_attack}} </span>
+                    <span> Special-defense: {{pokemon.special_defense}} </span>
+                    <span> Speed: {{pokemon.speed}} </span>
+                </p>
+            </div>
+        </div>
+        <a href="/" class="btn btn-primary">Главная</a>
+    </div>
+</div>
+{% endblock %}

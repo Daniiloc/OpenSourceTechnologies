@@ -1,0 +1,34 @@
+{% extends 'app.html' %}
+
+{% block content %}
+
+<div class="container col-12 d-flex pt-5 pb-5 flex-column justify-content-center align-items-center">
+    <div class="col-8 mb-2 d-flex justify-content-between">
+        <h3>История сражений</h3>
+    </div>
+    <div class="col-8">
+        <table class="table">
+            <thead>
+            <tr>
+                {% for elem in some_list %}
+                <th scope="col">{{ elem }}</th>
+                {% endfor %}
+            </tr>
+            </thead>
+            <tbody>
+            {% for battle in battles %}
+            <tr>
+                <th scope="row">{{ battle.id }}</th>
+                <td>{{ battle.main_pokemon }}</td>
+                <td>{{ battle.opponent_pokemon }}</td>
+                <td>{{ battle.win }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="row justify-content-center mb-3 mt-3">
+        <a href="/" class="btn btn-primary">Главная</a>
+    </div>
+</div>
+{% endblock %}

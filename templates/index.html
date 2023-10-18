@@ -1,19 +1,55 @@
-{% extends 'bootstrap/base.html' %}
-
-{% block title %}
-Index
-{% endblock %}
+{% extends 'app.html' %}
 
 {% block content %}
-<div class="input-group mb-3">
-  <form class="col-9" action="/search-result" method="post" enctype="multipart/form-data">
-    <input type="text" name="searchLabel" id="searchLabel" class="form-control" placeholder="Имя покемона" aria-describedby="button-addon2">
-    <button class="btn btn-outline-secondary" type="submit" id="button-addon2" >Поиск</button>
-  </form>
+{{ super() }}
+<div class="container">
+    <form class="col-12 d-flex mb-3 mt-3" action="/" method="get" enctype="multipart/form-data">
+        <input type="text" name="search_string" id="search_string" value="{{search_string}}" class="form-control"
+               placeholder="Имя покемона"
+               aria-describedby="button-addon2">
+        <button class="btn btn-outline-secondary" type="submit" id="button-addon2">Поиск</button>
+    </form>
+
+    <div class="row justify-content-center mb-3 mt-3">
+        <div class="row row-cols-5 col-12">
+            {% for pokemon in pokemons %}
+            <div class="card">
+                <img src="{{pokemon.image}}" class="card-img-top" alt="...">
+                <div class="card-body">
+                    <h5 class="card-title">{{pokemon.name}}</h5>
+                    <p class="card-text col-12 d-flex flex-column">
+                        <span> HP: {{pokemon.hp}} </span>
+                        <span> Attack: {{pokemon.attack}} </span>
+                    </p>
+                    <a href="/{{pokemon.name}}_battle" class="btn btn-primary">Битва</a>
+                    <a href="/{{pokemon.name}}" class="btn btn-secondary">Подробнее</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="row justify-content-center mb-3 mt-3">
+        <a href="/battle-history" class="btn btn-primary">История сражений</a>
+    </div>
+
+    <nav>
+        <ul class="pagination justify-content-center">
+            {% if current_page != 1 %}
+            <li class="page-item"><a class="page-link"
+                                     href="/?page={{current_page - 1}}&search_string={{search_string}}">Предыдущая</a>
+            </li>
+            {% endif %}
+            {% for number in pages %}
+            <li class="page-item"><a class="page-link" href="/?page={{number}}&search_string={{search_string}}">{{number}}</a>
+            </li>
+            {% endfor %}
+            {% if pages[-1] != max_pages %}
+            <li class="page-item"><a class="page-link"
+                                     href="/?page={{current_page + 1}}&search_string={{search_string}}">Следующая</a>
+            </li>
+            {% endif %}
+            </li>
+        </ul>
+    </nav>
 </div>
-<ul class="list-group">
-  {% for pokemon in pokemonList %}
-    <li class="list-group-item">{{pokemon}}</li>
-  {% endfor %}
-</ul>
 {% endblock %}
