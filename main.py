@@ -1,8 +1,11 @@
+import json
 import os
+import smtplib
 import random
+from email.mime.text import MIMEText
 import requests
 from models import connect_string, db, Battles
-from flask import Flask, render_template, request, session
+from flask import Flask, render_template, request, session, redirect, make_response
 from flask_bootstrap import Bootstrap
 
 
@@ -70,16 +73,32 @@ def winner():
     return result
 
 
+def auto_fight_history():
+    history = []
+    while not define_global_win():
+        session.pop('players_number', None)
+        session.pop('opponent_pokemon_number', None)
+        session['players_number'] = random.randint(1, 11)
+        session['opponent_pokemon_number'] = random.randint(1, 11)
+        decrease_hp(session['players_number'], session['opponent_pokemon_number'])
+        history.append(
+            {'players_number': session['players_number'],
+             'opponent_pokemon_number': session['opponent_pokemon_number'],
+             'main_hp': session['main_pokemon']['hp'],
+             'opponent_hp': session['opponent_pokemon']['hp']})
+    return history
+
+
 response = requests.get('https://pokeapi.co/api/v2/pokemon/?limit=1')
 data = response.json()
 response = requests.get(f'https://pokeapi.co/api/v2/pokemon/?limit={data["count"]}')
 data = response.json()
 pokemon_names = []
 multiplier = 5
+sleep_seconds = 1
 
 for i in data['results']:
     pokemon_names.append(i['name'])
-
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = connect_string
@@ -89,6 +108,7 @@ Bootstrap(app)
 
 @app.route('/')
 def hello():
+    session.clear()
     page = int(request.args.get('page') if request.args.get('page') else 1)
     search = request.args.get('search_string', '')
     pages = count_pages(page, len(pokemon_names) // multiplier)
@@ -106,7 +126,7 @@ def hello():
         search_string=search)
 
 
-@app.route('/<pokemon_name>')
+@app.route('/<pokemon_name>_page')
 def pokemon_page(pokemon_name):
     return render_template('pokemon_page.html', pokemon=get_pokemon_data(pokemon_name))
 
@@ -125,14 +145,11 @@ def battle(main_pokemon_name):
 
         return render_template('battle.html',
                                main_pokemon=get_pokemon_data(session['main_pokemon']['name']),
-                               opponent_pokemon=get_pokemon_data(session['opponent_pokemon']['name']))
+                               opponent_pokemon=get_pokemon_data(session['opponent_pokemon']['name']),
+                               auto_fight=False)
     else:
-        try:
-            players_number = request.form["players_number"]
-        except KeyError:
-            players_number = None
-
-        if define_global_win():
+        if 'auto_fight' in request.form:
+            history = auto_fight_history()
             fight_row = Battles(main_pokemon=session['main_pokemon']['name'],
                                 opponent_pokemon=session['opponent_pokemon']['name'],
                                 win=winner()['name'])
@@ -142,29 +159,51 @@ def battle(main_pokemon_name):
                                    main_pokemon=get_pokemon_data(session['main_pokemon']['name']),
                                    opponent_pokemon=get_pokemon_data(session['opponent_pokemon']['name']),
                                    global_win=define_global_win(),
-                                   winner=winner())
+                                   winner=winner(),
+                                   history=history,
+                                   auto_fight=True)
+        else:
+            try:
+                players_number = request.form["players_number"]
+            except KeyError:
+                players_number = None
 
-        ok = 'ok' in request.form  # True только если кнопка 'ok' после каждого раунда
-
-        if ok and 'players_number' in session:
-            session.pop('players_number', None)
-            session.pop('opponent_pokemon_number', None)
-            return render_template('battle.html',
-                                   main_pokemon=get_pokemon_data(session['main_pokemon']['name']),
-                                   opponent_pokemon=get_pokemon_data(session['opponent_pokemon']['name']))
-
-        if players_number:
-            if players_number.isdigit() and int(players_number) in list(range(1, 11)):
-                session['players_number'] = int(players_number)
-                if 'opponent_pokemon_number' not in session:
-                    opponent_pokemon_number = random.randint(1, 10)
-                    session['opponent_pokemon_number'] = opponent_pokemon_number
-
-                round_win = decrease_hp(session['players_number'], session['opponent_pokemon_number'])
+            if define_global_win():
+                fight_row = Battles(main_pokemon=session['main_pokemon']['name'],
+                                    opponent_pokemon=session['opponent_pokemon']['name'],
+                                    win=winner()['name'])
+                db.session.add(fight_row)
+                db.session.commit()
                 return render_template('battle.html',
                                        main_pokemon=get_pokemon_data(session['main_pokemon']['name']),
                                        opponent_pokemon=get_pokemon_data(session['opponent_pokemon']['name']),
-                                       round_win=round_win)
+                                       global_win=define_global_win(),
+                                       winner=winner(),
+                                       auto_fight=False)
+
+            ok = 'ok' in request.form  # True только если кнопка 'ok' после каждого раунда
+
+            if ok and 'players_number' in session:
+                session.pop('players_number', None)
+                session.pop('opponent_pokemon_number', None)
+                return render_template('battle.html',
+                                       main_pokemon=get_pokemon_data(session['main_pokemon']['name']),
+                                       opponent_pokemon=get_pokemon_data(session['opponent_pokemon']['name']),
+                                       auto_fight=False)
+
+            if players_number:
+                if players_number.isdigit() and int(players_number) in list(range(1, 11)):
+                    session['players_number'] = int(players_number)
+                    if 'opponent_pokemon_number' not in session:
+                        opponent_pokemon_number = random.randint(1, 10)
+                        session['opponent_pokemon_number'] = opponent_pokemon_number
+
+                    round_win = decrease_hp(session['players_number'], session['opponent_pokemon_number'])
+                    return render_template('battle.html',
+                                           main_pokemon=get_pokemon_data(session['main_pokemon']['name']),
+                                           opponent_pokemon=get_pokemon_data(session['opponent_pokemon']['name']),
+                                           round_win=round_win,
+                                           auto_fight=False)
 
 
 @app.route("/battle-history")
@@ -173,6 +212,93 @@ def archive():
     return render_template('battle_history.html',
                            battles=battles,
                            some_list=['№', 'Покемон', 'Противник', 'Победитель'])
+
+
+@app.route("/email", methods=["POST"])
+def email():
+    sender = 'danil.n.ermakov@gmail.com'
+    password = 'ieuzomkllhlxrspn'
+    to_email = request.form.get('email_string')
+    message = f'Ваш покемон: {session["main_pokemon"]["name"]}\n' \
+              f'Противник: {session["opponent_pokemon"]["name"]}\n' \
+              f'Победил: {winner()["name"]}'
+
+    msg = MIMEText(message)
+    msg['Subject'] = 'Результат боя'
+    msg['From'] = sender
+    msg['To'] = to_email
+
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(sender, password)
+    server.sendmail(sender, to_email, msg.as_string())
+
+    server.quit()
+    return redirect('/')
+
+
+@app.route("/pokemon/list")
+def api_list():
+    params = []
+    result = []
+    limit = len(pokemon_names)
+    for param in request.args:
+        if param == 'limit':
+            limit = int(request.args.get(param))
+        else:
+            params.append(request.args.get(param))
+
+    for name in range(limit):
+        pokemon = get_pokemon_data(pokemon_names[name])
+        result.append({})
+        for key in pokemon:
+            if key in params:
+                result[-1][key] = pokemon[key]
+    return result
+
+
+@app.route("/pokemon/<id>")
+def api_pokemon(id):
+    return get_pokemon_data(id)
+
+
+@app.route("/pokemon/random")
+def api_random_pokemon():
+    pokemon_name = pokemon_names[random.randrange(len(pokemon_names))]
+    url = f'https://pokeapi.co/api/v2/pokemon/{pokemon_name}/'
+    temp_response = requests.get(url)
+    temp_data = temp_response.json()
+    return [temp_data['id']]
+
+
+@app.route("/fight")
+def api_fight():
+    session.clear()
+    session['main_pokemon'] = request.args.get('main_pokemon')
+    session['opponent_pokemon'] = request.args.get('opponent_pokemon')
+    return [get_pokemon_data(session['main_pokemon']), get_pokemon_data(session['opponent_pokemon'])]
+
+
+@app.route("/fight/<number>", methods=['POST'])
+def api_fight_number(number):
+    if 'main_pokemon' not in session:
+        return make_response({'error': 'No selected pokemon'}, 400)
+    if 'opponent_pokemon' not in session:
+        return make_response({'error': 'No selected pokemon'}, 400)
+    opponent_pokemon_number = random.randint(1, 11)
+    decrease_hp(number, opponent_pokemon_number)
+    return [session['main_pokemon'], session['opponent_pokemon']]
+
+
+@app.route("/fight/fast")
+def api_fast_fight():
+    if 'main_pokemon' not in session:
+        session['main_pokemon'] = get_pokemon_data(random.choice(pokemon_names))
+    if 'opponent_pokemon' not in session:
+        session['opponent_pokemon'] = get_pokemon_data(random.choice(pokemon_names))
+    auto_fight_history()
+    return {'main_pokemon': session['main_pokemon'], 'opponent_pokemon': session['opponent_pokemon'],
+            'result': winner()['name']}
 
 
 if __name__ == '__main__':

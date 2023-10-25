@@ -16,27 +16,39 @@
             </div>
             <div class="card border-0">
                 {% if session['players_number'] %}
-                <div class="d-flex mt-3 justify-content-center fs-4 border rounded">
+                <div class="d-flex justify-content-center fs-4 border rounded">
                     <div class="d-flex justify-content-center align-items-center">
                         Ваше число:&nbsp;
                         <span class="fw-bolder">{{ session['players_number'] }}</span>
                     </div>
                 </div>
                 {% else %}
-                <form class="d-flex mt-3 justify-content-center"
-                      action="{{ url_for('battle', main_pokemon_name=main_pokemon.name) }}"
-                      method="post"
-                      enctype="multipart/form-data">
-                    <ul class="list-group input-group">
-                        <li class="list-group-item"><label>Введите число от&nbsp;1&nbsp;до&nbsp;10:</label></li>
-                        <li class="list-group-item"><input class="form-control" name="players_number" type="number"
-                                                           min="1" max="10" step="1"
-                                                           required/></li>
-                        <li class="list-group-item">
-                            <button class="btn btn-primary" type="submit">Подтвердить</button>
-                        </li>
-                    </ul>
-                </form>
+                <div class="block">
+                    <p>
+                    <form method="post" enctype="multipart/form-data">
+                        <ul class="list-group input-group">
+                            <li class="list-group-item"><label>Введите число от&nbsp;1&nbsp;до&nbsp;10:</label>
+                            </li>
+                            <li class="list-group-item"><input class="form-control" name="players_number"
+                                                               type="number"
+                                                               min="1" max="10" step="1"
+                                                               required/></li>
+                        </ul>
+                        <button class="btn btn-primary mt-3" style="width: 100%;"
+                                onclick="{{ url_for('battle', main_pokemon_name=main_pokemon.name, auto_fight=False) }}">
+                            Подтвердить
+                        </button>
+                    </form>
+                    </p>
+                    <p>
+                    <form method="post">
+                        <button class="btn btn-secondary" name="auto_fight" style="width: 100%;"
+                                onclick="{{ url_for('battle', main_pokemon_name=main_pokemon.name, auto_fight=True) }}">
+                            Автобой
+                        </button>
+                    </form>
+                    </p>
+                </div>
                 {% endif %}
             </div>
             <div class="card">
@@ -69,6 +81,35 @@
                 <button class="col-12 btn btn-outline-secondary" type="submit">OK</button>
             </form>
         </div>
+        {% if auto_fight == True %}
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">HP твоего покемона</th>
+                <th scope="col">Твое число</th>
+                <th scope="col">HP противника</th>
+                <th scope="col">Число противника</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for round in history %}
+            <tr>
+                <td>{{ round.main_hp }}</td>
+                <td>{{ round.players_number }}</td>
+                <td>{{ round.opponent_hp }}</td>
+                <td>{{ round.opponent_pokemon_number }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        <form class="col-12 d-flex mb-3 mt-3" action="{{url_for('email')}}" method="post"
+              enctype="multipart/form-data">
+            <input type="text" name="email_string" value="{{email_string}}" class="form-control"
+                   placeholder="Введите почту"
+                   aria-describedby="button-addon2">
+            <button class="btn btn-outline-secondary" type="submit" id="button-addon2">Отправить</button>
+        </form>
         {% endif %}
         {% if round_win == True or round_win == False %}
         <div class="d-flex flex-column col-12 mt-3 mb-3 border rounded justify-content-center align-items-center p-3">
@@ -80,12 +121,14 @@
                 {% endif %}
                 атакует!
             </div>
+            {% if auto_fight == False %}
             <form class="col-12 d-flex justify-content-center p-2"
-                  action="{{ url_for('battle', main_pokemon_name=main_pokemon.name) }}" method="post"
+                  action="{{ url_for('battle', main_pokemon_name=main_pokemon.name, auto_fight=False) }}" method="post"
                   enctype="multipart/form-data">
                 <input type="hidden" name="ok">
                 <button class="col-12 btn btn-outline-secondary" type="submit">OK</button>
             </form>
+            {% endif %}
         </div>
         {% endif %}
     </div>
