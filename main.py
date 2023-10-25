@@ -107,6 +107,10 @@ with open('ftp.json', 'r') as file:
     data = file.read()
 ftp_config = json.loads(data)
 
+with open('email.json', 'r') as file:
+    data = file.read()
+email_config = json.loads(data)
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = connect_string
 db.init_app(app)
@@ -233,8 +237,8 @@ def archive():
 
 @app.route("/email", methods=["POST"])
 def email():
-    sender = 'danil.n.ermakov@gmail.com'
-    password = 'ieuzomkllhlxrspn'
+    sender = email_config['sender']
+    password = email_config['sender']
     to_email = request.form.get('email_string')
     message = f'Ваш покемон: {session["main_pokemon"]["name"]}\n' \
               f'Противник: {session["opponent_pokemon"]["name"]}\n' \
