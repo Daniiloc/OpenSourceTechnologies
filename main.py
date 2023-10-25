@@ -1,12 +1,15 @@
-import json
+import io
 import os
-import smtplib
+import json
+import ftplib
 import random
-from email.mime.text import MIMEText
+import smtplib
 import requests
-from models import connect_string, db, Battles
-from flask import Flask, render_template, request, session, redirect, make_response
+from datetime import date
+from email.mime.text import MIMEText
 from flask_bootstrap import Bootstrap
+from models import connect_string, db, Battles
+from flask import Flask, render_template, request, session, redirect, make_response, flash
 
 
 def count_pages(current_page, finale_page):
@@ -100,6 +103,14 @@ sleep_seconds = 1
 for i in data['results']:
     pokemon_names.append(i['name'])
 
+with open('ftp.json', 'r') as file:
+    data = file.read()
+ftp_config = json.loads(data)
+
+with open('email.json', 'r') as file:
+    data = file.read()
+email_config = json.loads(data)
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = connect_string
 db.init_app(app)
@@ -129,6 +140,16 @@ def hello():
 @app.route('/<pokemon_name>_page')
 def pokemon_page(pokemon_name):
     return render_template('pokemon_page.html', pokemon=get_pokemon_data(pokemon_name))
+
+
+@app.route('/<pokemon_name>_page/save', methods=['POST'])
+def pokemon_page_save(pokemon_name):
+    save_response = requests.post(f'{request.host_url}api/{pokemon_name}/save')
+    if save_response.status_code == 201:
+        flash('Файл успешно создан', 'info')
+    else:
+        flash('Не удалось создать файл', 'info')
+    return redirect(f'/{pokemon_name}_page')
 
 
 @app.route('/<main_pokemon_name>_battle', methods=['GET', 'POST'])
@@ -216,8 +237,8 @@ def archive():
 
 @app.route("/email", methods=["POST"])
 def email():
-    sender = 'danil.n.ermakov@gmail.com'
-    password = 'ieuzomkllhlxrspn'
+    sender = email_config['sender']
+    password = email_config['sender']
     to_email = request.form.get('email_string')
     message = f'Ваш покемон: {session["main_pokemon"]["name"]}\n' \
               f'Противник: {session["opponent_pokemon"]["name"]}\n' \
@@ -237,7 +258,28 @@ def email():
     return redirect('/')
 
 
-@app.route("/pokemon/list")
+@app.route("/api/<pokemon_name>/save", methods=['POST'])
+def api_pokemon_save(pokemon_name):
+    pokemon = get_pokemon_data(pokemon_name)
+    folder_name = str(date.today()).replace('-', '').strip()
+    text_markdown = (f"# {pokemon['name']}\n\n### Характерисики:\n"
+                     f"- HP: {pokemon['hp']}\n- Attack: {pokemon['attack']}\n- Defense: {pokemon['defense']}\n"
+                     f"- Special_attack: {pokemon['special_attack']}\n- Special_defense: {pokemon['special_defense']}\n"
+                     f"- Speed: {pokemon['speed']}")
+
+    ftp = ftplib.FTP(host=ftp_config['hostname'])
+    ftp.login(user=ftp_config['username'], passwd=ftp_config['password'])
+
+    files = ftp.nlst()
+    if folder_name not in files:
+        ftp.mkd(folder_name)
+    ftp.cwd(folder_name)
+    ftp.storbinary(f"STOR {pokemon['name']}.md", io.BytesIO(text_markdown.encode('utf-8')))
+    ftp.quit()
+    return make_response({'result': 'success'}, 201)
+
+
+@app.route("/api/pokemon/list")
 def api_list():
     params = []
     result = []
@@ -257,21 +299,21 @@ def api_list():
     return result
 
 
-@app.route("/pokemon/<id>")
-def api_pokemon(id):
-    return get_pokemon_data(id)
+@app.route("/api/pokemon/<pokemon_id>")
+def api_pokemon(pokemon_id):
+    return get_pokemon_data(pokemon_id)
 
 
-@app.route("/pokemon/random")
+@app.route("/api/pokemon/random")
 def api_random_pokemon():
     pokemon_name = pokemon_names[random.randrange(len(pokemon_names))]
     url = f'https://pokeapi.co/api/v2/pokemon/{pokemon_name}/'
     temp_response = requests.get(url)
     temp_data = temp_response.json()
-    return [temp_data['id']]
+    return {'id': temp_data['id']}
 
 
-@app.route("/fight")
+@app.route("/api/fight")
 def api_fight():
     session.clear()
     session['main_pokemon'] = request.args.get('main_pokemon')
@@ -279,7 +321,7 @@ def api_fight():
     return [get_pokemon_data(session['main_pokemon']), get_pokemon_data(session['opponent_pokemon'])]
 
 
-@app.route("/fight/<number>", methods=['POST'])
+@app.route("/api/fight/<number>", methods=['POST'])
 def api_fight_number(number):
     if 'main_pokemon' not in session:
         return make_response({'error': 'No selected pokemon'}, 400)
@@ -290,7 +332,7 @@ def api_fight_number(number):
     return [session['main_pokemon'], session['opponent_pokemon']]
 
 
-@app.route("/fight/fast")
+@app.route("/api/fight/fast")
 def api_fast_fight():
     if 'main_pokemon' not in session:
         session['main_pokemon'] = get_pokemon_data(random.choice(pokemon_names))
