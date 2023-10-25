@@ -19,7 +19,7 @@
                     <span> Speed: {{pokemon.speed}} </span>
                 </p>
             </div>
-            <form class="col-12 mt-2" action="{{url_for('pokemon_page_save', pokemon.name)}}" method="post"
+            <form class="col-12 mt-2" action="{{url_for('pokemon_page_save', pokemon_name=pokemon.name)}}" method="post"
                   enctype="multipart/form-data">
                 <button class="col-12 btn btn-outline-secondary" type="submit">Сохранить покемона в файл</button>
                 {% for msg in get_flashed_messages() %}

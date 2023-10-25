@@ -138,10 +138,10 @@ def pokemon_page(pokemon_name):
     return render_template('pokemon_page.html', pokemon=get_pokemon_data(pokemon_name))
 
 
-@app.route('/<pokemon_name>_page/save', methods=['GET'])
+@app.route('/<pokemon_name>_page/save', methods=['POST'])
 def pokemon_page_save(pokemon_name):
-    save_response = requests.post(f'{request.host_url}/api/{pokemon_name}/save')
-    if save_response == 201:
+    save_response = requests.post(f'{request.host_url}api/{pokemon_name}/save')
+    if save_response.status_code == 201:
         flash('Файл успешно создан', 'info')
     else:
         flash('Не удалось создать файл', 'info')
@@ -254,25 +254,25 @@ def email():
     return redirect('/')
 
 
-@app.route("/api/<pokemon_name>/save")
+@app.route("/api/<pokemon_name>/save", methods=['POST'])
 def api_pokemon_save(pokemon_name):
     pokemon = get_pokemon_data(pokemon_name)
     folder_name = str(date.today()).replace('-', '').strip()
-    text_markdown = f"# {pokemon['name']}\n\n### Характерисики:\n- " \
-                    f"HP: {pokemon['hp']}\n- Attack: {pokemon['attack']}\n- " \
-                    f"Defense: {pokemon['defense']}\n- Special_attack: {pokemon['special_attack']}\n- " \
-                    f"Special_defense: {pokemon['special_defense']}\n- Speed: {pokemon['speed']}"
+    text_markdown = (f"# {pokemon['name']}\n\n### Характерисики:\n"
+                     f"- HP: {pokemon['hp']}\n- Attack: {pokemon['attack']}\n- Defense: {pokemon['defense']}\n"
+                     f"- Special_attack: {pokemon['special_attack']}\n- Special_defense: {pokemon['special_defense']}\n"
+                     f"- Speed: {pokemon['speed']}")
 
-    ftp = ftplib.FTP(host=ftp_config['FTP_HOST'])
-    ftp.login(user=ftp_config['FTP_USER'], passwd=ftp_config['FTP_PASSWORD'])
+    ftp = ftplib.FTP(host=ftp_config['hostname'])
+    ftp.login(user=ftp_config['username'], passwd=ftp_config['password'])
 
     files = ftp.nlst()
     if folder_name not in files:
         ftp.mkd(folder_name)
     ftp.cwd(folder_name)
-    ftp.storbinary(f"{pokemon['name']}.md", io.BytesIO(text_markdown.encode('utf-8')))
+    ftp.storbinary(f"STOR {pokemon['name']}.md", io.BytesIO(text_markdown.encode('utf-8')))
     ftp.quit()
-    return make_response(201)
+    return make_response({'result': 'success'}, 201)
 
 
 @app.route("/api/pokemon/list")
@@ -306,7 +306,7 @@ def api_random_pokemon():
     url = f'https://pokeapi.co/api/v2/pokemon/{pokemon_name}/'
     temp_response = requests.get(url)
     temp_data = temp_response.json()
-    return [temp_data['pokemon_id']]
+    return {'id': temp_data['id']}
 
 
 @app.route("/api/fight")
