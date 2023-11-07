@@ -1,4 +1,4 @@
-
-db.json
-ftp.json
+/db.json
+/ftp.json
 /email.json
+/redis.json

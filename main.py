@@ -9,6 +9,7 @@ from datetime import date
 from email.mime.text import MIMEText
 from flask_bootstrap import Bootstrap
 from models import connect_string, db, Battles
+from flask_caching import Cache, CachedResponse
 from flask import Flask, render_template, request, session, redirect, make_response, flash
 
 
@@ -111,10 +112,28 @@ with open('email.json', 'r') as file:
     data = file.read()
 email_config = json.loads(data)
 
+with open('redis.json', 'r') as file:
+    data = file.read()
+redis_config = json.loads(data)
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = connect_string
+cache = Cache(app, config={
+    "CACHE_TYPE": redis_config["CACHE_TYPE"],
+    "CACHE_KEY_PREFIX": redis_config["CACHE_KEY_PREFIX"],
+    "CACHE_REDIS_HOST": redis_config["CACHE_REDIS_HOST"],
+    "CACHE_REDIS_PORT": redis_config["CACHE_REDIS_PORT"],
+    "CACHE_REDIS_URL": redis_config["CACHE_REDIS_URL"]
+}
+              )
 db.init_app(app)
 Bootstrap(app)
+
+
+@app.route('/clear_cache')
+def clear_cache():
+    cache.clear()
+    return 'Cache cleared'
 
 
 @app.route('/')
@@ -126,8 +145,22 @@ def hello():
     if search != '':
         pokemons = search_result(page, search)
     else:
+        pokemons = cache.get(str(page))
+        if pokemons:
+            return CachedResponse(
+                response=make_response(
+                    render_template(
+                        'index.html',
+                        pokemons=pokemons,
+                        pages=pages,
+                        max_pages=len(pokemon_names) // multiplier,
+                        current_page=page,
+                        search_string=search)
+                ),
+                timeout=50,
+            )
+        cache.set(str(page), standart_result(page))
         pokemons = standart_result(page)
-
     return render_template(
         'index.html',
         pokemons=pokemons,
@@ -138,7 +171,16 @@ def hello():
 
 
 @app.route('/<pokemon_name>_page')
+@cache.cached()
 def pokemon_page(pokemon_name):
+    pokemon = cache.get(pokemon_name)
+    if pokemon:
+        return CachedResponse(
+            response=make_response(render_template('pokemon_page.html', pokemon=pokemon),
+                                   timeout=50,
+                                   )
+        )
+    cache.set(pokemon_name, get_pokemon_data(pokemon_name))
     return render_template('pokemon_page.html', pokemon=get_pokemon_data(pokemon_name))
 
 
