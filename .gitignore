@@ -1,4 +1,3 @@
-/db.json
-/ftp.json
-/email.json
-/redis.json
+/.env.docker
+/.env.local
+/__pycache__
