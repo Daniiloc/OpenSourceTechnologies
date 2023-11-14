@@ -1,6 +1,4 @@
 import io
-import os
-import json
 import ftplib
 import random
 import smtplib
@@ -8,7 +6,7 @@ import requests
 from datetime import date
 from email.mime.text import MIMEText
 from flask_bootstrap import Bootstrap
-from models import connect_string, db, Battles
+from models import *
 from flask_caching import Cache, CachedResponse
 from flask import Flask, render_template, request, session, redirect, make_response, flash
 
@@ -104,28 +102,34 @@ sleep_seconds = 1
 for i in data['results']:
     pokemon_names.append(i['name'])
 
-with open('ftp.json', 'r') as file:
-    data = file.read()
-ftp_config = json.loads(data)
-
-with open('email.json', 'r') as file:
-    data = file.read()
-email_config = json.loads(data)
-
-with open('redis.json', 'r') as file:
-    data = file.read()
-redis_config = json.loads(data)
+ftp_config = {
+    'username': os.environ.get('FTP_USERNAME'),
+    'password': os.environ.get('FTP_PASSWORD'),
+    'hostname': os.environ.get('FTP_HOSTNAME')
+}
+email_config = {
+    'sender': os.environ.get('EMAIL_SENDER'),
+    'password': os.environ.get('EMAIL_PASSWORD')
+}
+redis_config = {
+    'CACHE_TYPE': os.environ.get('CACHE_TYPE'),
+    'CACHE_KEY_PREFIX': os.environ.get('CACHE_KEY_PREFIX'),
+    'CACHE_REDIS_HOST': os.environ.get('CACHE_REDIS_HOST'),
+    'CACHE_REDIS_PORT': os.environ.get('CACHE_REDIS_PORT'),
+    'CACHE_REDIS_URL': f"{os.environ.get('CACHE_TYPE')}://{os.environ.get('CACHE_REDIS_HOST')}:{os.environ.get('CACHE_REDIS_PORT')}"
+}
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = connect_string
+app.secret_key = os.environ.get('SECRET_KEY')
+app.config[
+    'SQLALCHEMY_DATABASE_URI'] = f"postgresql://{os.environ.get('POSTGRES_USER')}:{os.environ.get('POSTGRES_PASSWORD')}@{os.environ.get('POSTGRES_HOST')}:{os.environ.get('POSTGRES_PORT')}/{os.environ.get('POSTGRES_DB')}"
 cache = Cache(app, config={
     "CACHE_TYPE": redis_config["CACHE_TYPE"],
     "CACHE_KEY_PREFIX": redis_config["CACHE_KEY_PREFIX"],
     "CACHE_REDIS_HOST": redis_config["CACHE_REDIS_HOST"],
     "CACHE_REDIS_PORT": redis_config["CACHE_REDIS_PORT"],
     "CACHE_REDIS_URL": redis_config["CACHE_REDIS_URL"]
-}
-              )
+})
 db.init_app(app)
 Bootstrap(app)
 
@@ -386,5 +390,6 @@ def api_fast_fight():
 
 
 if __name__ == '__main__':
-    app.secret_key = os.urandom(24)
-    app.run()
+    with app.app_context():
+        db.create_all()
+    app.run(host=os.environ.get('APP_HOST'), port=os.environ.get('APP_PORT'))

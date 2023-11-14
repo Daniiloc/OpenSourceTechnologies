@@ -1,0 +1,49 @@
+services:
+  server:
+    build: .
+    image: daniiloc/open_source_technologies:latest
+    container_name: pokemon_app
+    ports:
+      - 5000:5000
+    command: python main.py
+    restart: always
+    env_file:
+      - .env.docker
+    depends_on:
+      - ftp
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:latest
+    restart: always
+    container_name: pokemon_postgres
+    ports:
+      - 5434:5432
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  ftp:
+    image: delfer/alpine-ftp-server
+    container_name: pokemon_ftp
+    restart: always
+    expose:
+      - 21
+    environment:
+      - "USERS=${FTP_USERNAME}|${FTP_PASSWORD}|/ftp/ftp"
+
+  redis:
+    image: redis:7.0.9-alpine
+    container_name: pokemon_redis
+    restart: unless-stopped
+    command: redis-server --port "${CACHE_REDIS_PORT}"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  postgres-data:
+  redis-data:
