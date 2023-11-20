@@ -6,6 +6,7 @@
 **/.env
 **/.env.local
 **/.env.docker
+**/UnitTests/.pytest_cache/
 **/.git
 **/.gitignore
 **/.project
