@@ -1,14 +1,14 @@
 import os
 import random
+import load_env
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 
 import requests
 from flask import session
 
-dotenv_path = os.path.join(os.path.dirname(__file__), '.env.local')
-if os.path.exists(dotenv_path):
-    load_dotenv(dotenv_path)
+
+load_env.load_environment()
 
 db = SQLAlchemy()
 

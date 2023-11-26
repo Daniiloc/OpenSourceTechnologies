@@ -17,9 +17,9 @@
             <div class="card border-0">
                 {% if session['players_number'] %}
                 <div class="d-flex justify-content-center fs-4 border rounded">
-                    <div class="d-flex justify-content-center align-items-center">
+                    <div class="d-flex justify-content-center align-items-center" id="player_div">
                         Ваше число:&nbsp;
-                        <span class="fw-bolder">{{ session['players_number'] }}</span>
+                        <span class="fw-bolder" id="player_span">{{ session['players_number'] }}</span>
                     </div>
                 </div>
                 {% else %}
@@ -35,7 +35,8 @@
                                                                required/></li>
                         </ul>
                         <button class="btn btn-primary mt-3" style="width: 100%;"
-                                onclick="{{ url_for('battle', main_pokemon_name=main_pokemon.name, auto_fight=False) }}">
+                                onclick="{{ url_for('battle', main_pokemon_name=main_pokemon.name, auto_fight=False) }}"
+                                id="confirm_button">
                             Подтвердить
                         </button>
                     </form>
