@@ -1,135 +1,31 @@
-import io
-import ftplib
-import random
 import smtplib
-import requests
-from datetime import date
 from email.mime.text import MIMEText
 from flask_bootstrap import Bootstrap
+
+import api
 from models import *
 from flask_caching import Cache, CachedResponse
 from flask import Flask, render_template, request, session, redirect, make_response, flash
 
-
-def count_pages(current_page, finale_page):
-    left = current_page - 3 if current_page >= 4 else 1
-    right = current_page + 3 if finale_page - current_page >= 3 else finale_page
-    return list(range(left, right + 1))
-
-
-def get_pokemon_data(pokemon_name):
-    url = f'https://pokeapi.co/api/v2/pokemon/{pokemon_name}/'
-    temp_response = requests.get(url)
-    temp_data = temp_response.json()
-    pokemon = {'name': pokemon_name, 'image': temp_data['sprites']['front_default']}
-
-    for stat in temp_data['stats']:
-        pokemon[stat['stat']['name'].replace('-', '_')] = stat['base_stat']
-    return pokemon
-
-
-def standart_result(current_page):
-    global multiplier
-    pokemons = [
-        get_pokemon_data(pokemon_names[index])
-        for index in range((current_page - 1) * multiplier, (current_page - 1) * multiplier + multiplier)
-    ]
-    return pokemons
-
-
-def search_result(current_page, search_prompt):
-    global multiplier
-    counter = 0
-    pokemons = []
-    for name in pokemon_names:
-        if search_prompt in name:
-            if counter < current_page * multiplier + multiplier:
-                if current_page * multiplier <= counter:
-                    pokemons.append(get_pokemon_data(name))
-            else:
-                break
-            counter += 1
-
-    return pokemons
-
-
-def decrease_hp(players_number, opponent_pokemon_number):
-    if players_number % 2 == opponent_pokemon_number % 2:
-        session['opponent_pokemon']['hp'] -= session['main_pokemon']['attack']
-        return True
-    else:
-        session['main_pokemon']['hp'] -= session['opponent_pokemon']['attack']
-        return False
-
-
-def define_global_win():
-    return session['opponent_pokemon']['hp'] <= 0 or session['main_pokemon']['hp'] <= 0
-
-
-def winner():
-    result = None
-    if session['opponent_pokemon']['hp'] <= 0:
-        result = session['main_pokemon']
-    elif session['main_pokemon']['hp'] <= 0:
-        result = session['opponent_pokemon']
-    return result
-
-
-def auto_fight_history():
-    history = []
-    while not define_global_win():
-        session.pop('players_number', None)
-        session.pop('opponent_pokemon_number', None)
-        session['players_number'] = random.randint(1, 11)
-        session['opponent_pokemon_number'] = random.randint(1, 11)
-        decrease_hp(session['players_number'], session['opponent_pokemon_number'])
-        history.append(
-            {'players_number': session['players_number'],
-             'opponent_pokemon_number': session['opponent_pokemon_number'],
-             'main_hp': session['main_pokemon']['hp'],
-             'opponent_hp': session['opponent_pokemon']['hp']})
-    return history
-
-
-response = requests.get('https://pokeapi.co/api/v2/pokemon/?limit=1')
-data = response.json()
-response = requests.get(f'https://pokeapi.co/api/v2/pokemon/?limit={data["count"]}')
-data = response.json()
-pokemon_names = []
-multiplier = 5
-sleep_seconds = 1
-
-for i in data['results']:
-    pokemon_names.append(i['name'])
-
-ftp_config = {
-    'username': os.environ.get('FTP_USERNAME'),
-    'password': os.environ.get('FTP_PASSWORD'),
-    'hostname': os.environ.get('FTP_HOSTNAME')
-}
-email_config = {
-    'sender': os.environ.get('EMAIL_SENDER'),
-    'password': os.environ.get('EMAIL_PASSWORD')
-}
-redis_config = {
-    'CACHE_TYPE': os.environ.get('CACHE_TYPE'),
-    'CACHE_KEY_PREFIX': os.environ.get('CACHE_KEY_PREFIX'),
-    'CACHE_REDIS_HOST': os.environ.get('CACHE_REDIS_HOST'),
-    'CACHE_REDIS_PORT': os.environ.get('CACHE_REDIS_PORT'),
-    'CACHE_REDIS_URL': f"{os.environ.get('CACHE_TYPE')}://{os.environ.get('CACHE_REDIS_HOST')}:{os.environ.get('CACHE_REDIS_PORT')}"
-}
-
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
-app.config[
-    'SQLALCHEMY_DATABASE_URI'] = f"postgresql://{os.environ.get('POSTGRES_USER')}:{os.environ.get('POSTGRES_PASSWORD')}@{os.environ.get('POSTGRES_HOST')}:{os.environ.get('POSTGRES_PORT')}/{os.environ.get('POSTGRES_DB')}"
-cache = Cache(app, config={
-    "CACHE_TYPE": redis_config["CACHE_TYPE"],
-    "CACHE_KEY_PREFIX": redis_config["CACHE_KEY_PREFIX"],
-    "CACHE_REDIS_HOST": redis_config["CACHE_REDIS_HOST"],
-    "CACHE_REDIS_PORT": redis_config["CACHE_REDIS_PORT"],
-    "CACHE_REDIS_URL": redis_config["CACHE_REDIS_URL"]
-})
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    f"postgresql://{os.environ.get('POSTGRES_USER')}"
+    f":{os.environ.get('POSTGRES_PASSWORD')}"
+    f"@{os.environ.get('POSTGRES_HOST')}"
+    f":{os.environ.get('POSTGRES_PORT')}"
+    f"/{os.environ.get('POSTGRES_DB')}"
+)
+cache = Cache(
+    app,
+    config={
+        "CACHE_TYPE": redis_config["CACHE_TYPE"],
+        "CACHE_KEY_PREFIX": redis_config["CACHE_KEY_PREFIX"],
+        "CACHE_REDIS_HOST": redis_config["CACHE_REDIS_HOST"],
+        "CACHE_REDIS_PORT": redis_config["CACHE_REDIS_PORT"],
+        "CACHE_REDIS_URL": redis_config["CACHE_REDIS_URL"]
+    }
+)
 db.init_app(app)
 Bootstrap(app)
 
@@ -145,10 +41,13 @@ def hello():
     session.clear()
     page = int(request.args.get('page') if request.args.get('page') else 1)
     search = request.args.get('search_string', '')
-    pages = count_pages(page, len(pokemon_names) // multiplier)
     if search != '':
-        pokemons = search_result(page, search)
+        pokemons = search_result_names(search)
+        max_pages = len(pokemons) // multiplier if len(pokemons) // multiplier > 0 else 1
+        pages = count_pages(page, max_pages)
+        pokemons = search_result(page, pokemons)
     else:
+        pages = count_pages(page, len(pokemon_names) // multiplier)
         pokemons = cache.get(str(page))
         if pokemons:
             return CachedResponse(
@@ -165,11 +64,12 @@ def hello():
             )
         cache.set(str(page), standart_result(page))
         pokemons = standart_result(page)
+        max_pages = len(pokemon_names) // multiplier
     return render_template(
         'index.html',
         pokemons=pokemons,
         pages=pages,
-        max_pages=len(pokemon_names) // multiplier,
+        max_pages=max_pages,
         current_page=page,
         search_string=search)
 
@@ -306,87 +206,37 @@ def email():
 
 @app.route("/api/<pokemon_name>/save", methods=['POST'])
 def api_pokemon_save(pokemon_name):
-    pokemon = get_pokemon_data(pokemon_name)
-    folder_name = str(date.today()).replace('-', '').strip()
-    text_markdown = (f"# {pokemon['name']}\n\n### Характерисики:\n"
-                     f"- HP: {pokemon['hp']}\n- Attack: {pokemon['attack']}\n- Defense: {pokemon['defense']}\n"
-                     f"- Special_attack: {pokemon['special_attack']}\n- Special_defense: {pokemon['special_defense']}\n"
-                     f"- Speed: {pokemon['speed']}")
-
-    ftp = ftplib.FTP(host=ftp_config['hostname'])
-    ftp.login(user=ftp_config['username'], passwd=ftp_config['password'])
-
-    files = ftp.nlst()
-    if folder_name not in files:
-        ftp.mkd(folder_name)
-    ftp.cwd(folder_name)
-    ftp.storbinary(f"STOR {pokemon['name']}.md", io.BytesIO(text_markdown.encode('utf-8')))
-    ftp.quit()
-    return make_response({'result': 'success'}, 201)
+    return api.api_pokemon_save(pokemon_name)
 
 
 @app.route("/api/pokemon/list")
 def api_list():
-    params = []
-    result = []
-    limit = len(pokemon_names)
-    for param in request.args:
-        if param == 'limit':
-            limit = int(request.args.get(param))
-        else:
-            params.append(request.args.get(param))
-
-    for name in range(limit):
-        pokemon = get_pokemon_data(pokemon_names[name])
-        result.append({})
-        for key in pokemon:
-            if key in params:
-                result[-1][key] = pokemon[key]
-    return result
+    return api.api_list()
 
 
 @app.route("/api/pokemon/<pokemon_id>")
 def api_pokemon(pokemon_id):
-    return get_pokemon_data(pokemon_id)
+    return api.api_pokemon(pokemon_id)
 
 
 @app.route("/api/pokemon/random")
 def api_random_pokemon():
-    pokemon_name = pokemon_names[random.randrange(len(pokemon_names))]
-    url = f'https://pokeapi.co/api/v2/pokemon/{pokemon_name}/'
-    temp_response = requests.get(url)
-    temp_data = temp_response.json()
-    return {'id': temp_data['id']}
+    return api.api_random_pokemon()
 
 
 @app.route("/api/fight")
 def api_fight():
-    session.clear()
-    session['main_pokemon'] = request.args.get('main_pokemon')
-    session['opponent_pokemon'] = request.args.get('opponent_pokemon')
-    return [get_pokemon_data(session['main_pokemon']), get_pokemon_data(session['opponent_pokemon'])]
+    return api.api_fight()
 
 
 @app.route("/api/fight/<number>", methods=['POST'])
 def api_fight_number(number):
-    if 'main_pokemon' not in session:
-        return make_response({'error': 'No selected pokemon'}, 400)
-    if 'opponent_pokemon' not in session:
-        return make_response({'error': 'No selected pokemon'}, 400)
-    opponent_pokemon_number = random.randint(1, 11)
-    decrease_hp(number, opponent_pokemon_number)
-    return [session['main_pokemon'], session['opponent_pokemon']]
+    return api.api_fight_number(number)
 
 
 @app.route("/api/fight/fast")
 def api_fast_fight():
-    if 'main_pokemon' not in session:
-        session['main_pokemon'] = get_pokemon_data(random.choice(pokemon_names))
-    if 'opponent_pokemon' not in session:
-        session['opponent_pokemon'] = get_pokemon_data(random.choice(pokemon_names))
-    auto_fight_history()
-    return {'main_pokemon': session['main_pokemon'], 'opponent_pokemon': session['opponent_pokemon'],
-            'result': winner()['name']}
+    return api.api_fast_fight()
 
 
 if __name__ == '__main__':

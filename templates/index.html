@@ -35,7 +35,7 @@
         </div>
     </div>
     <div class="row justify-content-center mb-3 mt-3">
-        <a href="/battle-history" class="btn btn-primary">История сражений</a>
+        <a href="/battle-history" class="btn btn-primary" id="history">История сражений</a>
     </div>
 
     <nav>
@@ -49,7 +49,7 @@
             <li class="page-item"><a class="page-link" href="/?page={{number}}&search_string={{search_string}}">{{number}}</a>
             </li>
             {% endfor %}
-            {% if pages[-1] != max_pages %}
+            {% if current_page != max_pages %}
             <li class="page-item"><a class="page-link"
                                      href="/?page={{current_page + 1}}&search_string={{search_string}}">Следующая</a>
             </li>

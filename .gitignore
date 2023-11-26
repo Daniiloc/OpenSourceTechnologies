@@ -1,3 +1,5 @@
 /.env.docker
 /.env.local
-/__pycache__
+/Tests/.pytest_cache/
+.idea
+__pycache__
