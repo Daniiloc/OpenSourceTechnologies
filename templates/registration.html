@@ -1,0 +1,56 @@
+{% extends 'app.html' %}
+{% block content %}
+{{ super() }}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="row row-cols-3 col-12 mt-5 mb-5">
+            <div class="card mx-auto" style="width: 400px;">
+                <form>
+                    <h1 class="mx-auto mt-2">Регистрация</h1>
+                    <div class="mb-4 mt-4">
+                        <label for="nickname"><b>Имя пользователя</b></label>
+                        <input
+                                type="text"
+                                placeholder="Введите имя пользователя"
+                                name="nickname"
+                                id="nickname"
+                                required
+                        />
+                    </div>
+                    <div class="mb-4 mt-4">
+                        <label for="email"><b>Введите почту</b></label>
+                        <input
+                                type="text"
+                                placeholder="Введите почту"
+                                name="email"
+                                id="email"
+                                required
+                        />
+                    </div>
+                    <div class="mb-4 mt-4">
+                        <label for="password"><b>Введите пароль</b></label>
+                        <input
+                                type="password"
+                                placeholder="Введите пароль"
+                                name="password"
+                                id="password"
+                                required
+                        />
+                    </div>
+                    <div>
+                        <label for="password_repeat"><b>Повторите пароль</b></label>
+                        <input
+                                type="password"
+                                placeholder="Повторите пароль"
+                                name="password_repeat"
+                                id="password_repeat"
+                                required
+                        />
+                    </div>
+                    <button class="mb-4 mt-4" style="width: 100%" type="submit">Зарегистрироваться</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

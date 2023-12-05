@@ -1,11 +1,16 @@
 import io
 import ftplib
 from datetime import date
-from flask import make_response, request
+from flask import make_response, request, Blueprint
 
 from models import *
 
 
+api = Blueprint('api', __name__, template_folder='templates')
+csrf.exempt(api)
+
+
+@api.route('/api/<pokemon_name>/save', methods=['POST'])
 def api_pokemon_save(pokemon_name):
     pokemon = get_pokemon_data(pokemon_name)
     folder_name = str(date.today()).replace('-', '').strip()
@@ -26,6 +31,7 @@ def api_pokemon_save(pokemon_name):
     return make_response({'result': 'success'}, 201)
 
 
+@api.route('/api/pokemon/list')
 def api_list():
     params = ['name']
     result = []
@@ -45,10 +51,12 @@ def api_list():
     return result
 
 
+@api.route('/api/pokemon/<pokemon_id>')
 def api_pokemon(pokemon_id):
     return get_pokemon_data(pokemon_id)
 
 
+@api.route('/api/fight')
 def api_fight():
     session.clear()
     if 'main_pokemon' in request.args:
@@ -62,6 +70,7 @@ def api_fight():
     return [session['main_pokemon'], session['opponent_pokemon']]
 
 
+@api.route('/api/fight/<number>', methods=['POST'])
 def api_fight_number(number):
     if 'main_pokemon' not in session:
         return make_response({'error': 'No selected pokemon'}, 400)
@@ -72,7 +81,8 @@ def api_fight_number(number):
     return [session['main_pokemon'], session['opponent_pokemon']]
 
 
-def api_fast_fight():
+@api.route('/api/fight/fast')
+def api_fight_fast():
     if 'main_pokemon' not in session:
         session['main_pokemon'] = get_pokemon_data(random.choice(pokemon_names))
     if 'opponent_pokemon' not in session:
@@ -82,6 +92,7 @@ def api_fast_fight():
             'result': winner()['name']}
 
 
+@api.route('/api/pokemon/random')
 def api_random_pokemon():
     pokemon_name = pokemon_names[random.randrange(len(pokemon_names))]
     url = f'https://pokeapi.co/api/v2/pokemon/{pokemon_name}/'

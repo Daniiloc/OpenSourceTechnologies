@@ -1,7 +1,7 @@
 {% extends 'app.html' %}
 
 {% block content %}
-
+{{ super() }}
 <div class="container col-12 d-flex pt-5 pb-5 flex-column justify-content-center align-items-center">
     <div class="col-8 mb-2 d-flex justify-content-between">
         <h3>История сражений</h3>
@@ -22,6 +22,7 @@
                 <td>{{ battle.main_pokemon }}</td>
                 <td>{{ battle.opponent_pokemon }}</td>
                 <td>{{ battle.win }}</td>
+                <td>{{ battle.user_id }}</td>
             </tr>
             {% endfor %}
             </tbody>

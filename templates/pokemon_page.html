@@ -1,5 +1,4 @@
 {% extends 'app.html' %}
-
 {% block content %}
 {{ super() }}
 <div class="container">
@@ -21,6 +20,7 @@
             </div>
             <form class="col-12 mt-2" action="{{url_for('pokemon_page_save', pokemon_name=pokemon.name)}}" method="post"
                   enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{csrf_token()}}"/>
                 <button class="col-12 btn btn-outline-secondary" type="submit">Сохранить покемона в файл</button>
                 {% for msg in get_flashed_messages() %}
                 <div class="flash">{{msg}}</div>

@@ -1,0 +1,42 @@
+{% extends 'app.html' %}
+{% block content %}
+{{ super() }}
+
+<div class="container d-flex align-items-center justify-content-center flex-column" style="min-height: 100vh;">
+    <div class="row justify-content-center col-12">
+        <div class="col-6 d-flex justify-content-center border rounded">
+            <div class="col-11 d-flex justify-content-center flex-column">
+                <h3 class="text-center mt-4 mb-3">Подтвердите вход</h3>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            {% if category == "error" %}
+                                <div class="alert alert-danger" role="alert">
+                                    {{message}}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form action="" method="post">
+                    {{ form.csrf_token }}
+                    <span>
+                        <p class="mb-2 mt-3">{{ form.code.label(class="text-dark") }}</p>
+                        {{ form.code(class="form-control") }}
+
+                        {% if form.code.errors %}
+                            {% for error in form.code.errors %}
+                                <span class="badge text-danger">{{ error }}</span>
+                            {% endfor %}
+                        {% endif %}
+                    </span>
+                    <span class="mt-4 mb-3 col-12 d-flex justify-content-center">{{ form.submit(class="btn btn-dark col-12") }}</span>    
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

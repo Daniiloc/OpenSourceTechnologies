@@ -1,16 +1,27 @@
-import os
 import random
-import load_env
-from dotenv import load_dotenv
-from flask_sqlalchemy import SQLAlchemy
-
-import requests
+from settings import *
 from flask import session
+from flask_login import UserMixin, current_user
+from sqlalchemy import ForeignKey
 
 
-load_env.load_environment()
+class Users(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(15), nullable=False)
+    email = db.Column(db.String(128), unique=True, nullable=False)
+    password = db.Column(db.String, nullable=False)
 
-db = SQLAlchemy()
+    def __init__(self, name: str, email: str, password: str):
+        super().__init__()
+        self.name = name
+        self.email = email
+        self.password = self.get_password_hash(password)
+
+    def check_password(self, password):
+        return bcrypt.check_password_hash(self.password, password)
+
+    def get_password_hash(self, password):
+        return bcrypt.generate_password_hash(password).decode('utf-8')
 
 
 class Battles(db.Model):
@@ -18,35 +29,7 @@ class Battles(db.Model):
     main_pokemon = db.Column(db.String(150), nullable=False)
     opponent_pokemon = db.Column(db.String(150), nullable=False)
     win = db.Column(db.String(150), nullable=False)
-
-
-response = requests.get('https://pokeapi.co/api/v2/pokemon/?limit=1')
-data = response.json()
-response = requests.get(f'https://pokeapi.co/api/v2/pokemon/?limit={data["count"]}')
-data = response.json()
-pokemon_names = []
-multiplier = 5
-
-for i in data['results']:
-    pokemon_names.append(i['name'])
-
-ftp_config = {
-    'username': os.environ.get('FTP_USERNAME'),
-    'password': os.environ.get('FTP_PASSWORD'),
-    'hostname': os.environ.get('FTP_HOSTNAME')
-}
-email_config = {
-    'sender': os.environ.get('EMAIL_SENDER'),
-    'password': os.environ.get('EMAIL_PASSWORD')
-}
-redis_config = {
-    'CACHE_TYPE': os.environ.get('CACHE_TYPE'),
-    'CACHE_KEY_PREFIX': os.environ.get('CACHE_KEY_PREFIX'),
-    'CACHE_REDIS_HOST': os.environ.get('CACHE_REDIS_HOST'),
-    'CACHE_REDIS_PORT': os.environ.get('CACHE_REDIS_PORT'),
-    'CACHE_REDIS_URL': f"{os.environ.get('CACHE_TYPE')}://{os.environ.get('CACHE_REDIS_HOST')}"
-                       f":{os.environ.get('CACHE_REDIS_PORT')}"
-}
+    user_id = db.Column(db.Integer, ForeignKey('users.id'))
 
 
 def count_pages(current_page: int, finale_page: int):
@@ -55,7 +38,7 @@ def count_pages(current_page: int, finale_page: int):
     return list(range(left, right + 1))
 
 
-def get_pokemon_data(pokemon_name):
+def get_pokemon_data(pokemon_name: str or int):
     url = f'https://pokeapi.co/api/v2/pokemon/{pokemon_name}/'
     temp_response = requests.get(url)
     temp_data = temp_response.json()
@@ -66,7 +49,7 @@ def get_pokemon_data(pokemon_name):
     return pokemon
 
 
-def standart_result(current_page):
+def standart_result(current_page: int):
     global multiplier
     pokemons = [
         get_pokemon_data(pokemon_names[index])
@@ -75,7 +58,7 @@ def standart_result(current_page):
     return pokemons
 
 
-def search_result(current_page, search_pokemons):
+def search_result(current_page: int, search_pokemons: list):
     global multiplier
     if len(search_pokemons) >= multiplier:
         pokemons = \
@@ -92,7 +75,7 @@ def search_result(current_page, search_pokemons):
     return pokemons
 
 
-def search_result_names(search_prompt):
+def search_result_names(search_prompt: str):
     global multiplier
     pokemons = []
     for name in pokemon_names:
@@ -101,7 +84,7 @@ def search_result_names(search_prompt):
     return pokemons
 
 
-def decrease_hp(players_number, opponent_pokemon_number):
+def decrease_hp(players_number: int, opponent_pokemon_number: int):
     if players_number % 2 == opponent_pokemon_number % 2:
         session['opponent_pokemon']['hp'] -= session['main_pokemon']['attack']
         return True
@@ -137,3 +120,24 @@ def auto_fight_history():
              'main_hp': session['main_pokemon']['hp'],
              'opponent_hp': session['opponent_pokemon']['hp']})
     return history
+
+
+def add_row_to_battles():
+    print(current_user.id)
+    fight_row = Battles(main_pokemon=session['main_pokemon']['name'],
+                        opponent_pokemon=session['opponent_pokemon']['name'],
+                        win=winner()['name'],
+                        user_id=current_user.id if current_user.is_authenticated else None)
+    db.session.add(fight_row)
+    db.session.commit()
+
+
+def clear_session():
+    if 'players_number' in session:
+        session.pop('players_number')
+    if 'opponent_pokemon_number' in session:
+        session.pop('opponent_pokemon_number')
+    if 'main_pokemon' in session:
+        session.pop('main_pokemon')
+    if 'opponent_pokemon' in session:
+        session.pop('opponent_pokemon')
