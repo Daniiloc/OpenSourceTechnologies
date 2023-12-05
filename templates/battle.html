@@ -1,5 +1,4 @@
 {% extends 'app.html' %}
-
 {% block content %}
 {{ super() }}
 <div class="container">
@@ -26,6 +25,7 @@
                 <div class="block">
                     <p>
                     <form method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}"/>
                         <ul class="list-group input-group">
                             <li class="list-group-item"><label>Введите число от&nbsp;1&nbsp;до&nbsp;10:</label>
                             </li>
@@ -43,6 +43,7 @@
                     </p>
                     <p>
                     <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}"/>
                         <button class="btn btn-secondary" name="auto_fight" style="width: 100%;"
                                 onclick="{{ url_for('battle', main_pokemon_name=main_pokemon.name, auto_fight=True) }}">
                             Автобой
@@ -106,6 +107,7 @@
         {% endif %}
         <form class="col-12 d-flex mb-3 mt-3" action="{{url_for('email')}}" method="post"
               enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{csrf_token()}}"/>
             <input type="text" name="email_string" value="{{email_string}}" class="form-control"
                    placeholder="Введите почту"
                    aria-describedby="button-addon2">
@@ -126,6 +128,8 @@
             <form class="col-12 d-flex justify-content-center p-2"
                   action="{{ url_for('battle', main_pokemon_name=main_pokemon.name, auto_fight=False) }}" method="post"
                   enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{csrf_token()}}"/>
+
                 <input type="hidden" name="ok">
                 <button class="col-12 btn btn-outline-secondary" type="submit">OK</button>
             </form>

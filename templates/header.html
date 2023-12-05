@@ -1,0 +1,17 @@
+<div class="container">
+    <header class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-between py-3 border-bottom">
+        <ul class="nav col-12 col-md-auto mb-2 justify-content-center mb-md-0">
+            <li><a href="/" class="nav-link px-3 text-dark">Вернуться на главную страницу</a></li>
+        </ul>
+
+        <div class="col-md-3 text-end">
+            {% if current_user.is_authenticated %}
+                <span class="text-secondary me-2">{{current_user.name}}</span>
+                <a href="{{url_for('auth.log_out')}}" class="btn btn-outline-dark">Выйти</a>
+            {% else %}
+                <a href="{{url_for('auth.login')}}" class="btn btn-outline-dark me-1">Войти</a>
+                <a href="{{url_for('auth.sign_up')}}" class="btn btn-dark">Зарегистрироваться</a>
+            {% endif %}
+        </div>
+      </header>
+</div>

@@ -4,9 +4,10 @@
 {{ super() }}
 <div class="container">
     <form class="col-12 d-flex mb-3 mt-3" action="/" method="get" enctype="multipart/form-data">
-        <input type="text" name="search_string" id="search_string" value="{{search_string}}" class="form-control"
-               placeholder="Имя покемона"
-               aria-describedby="button-addon2">
+        <label for="search_string"></label><input type="text" name="search_string" id="search_string"
+                                                  value="{{search_string}}" class="form-control"
+                                                  placeholder="Имя покемона"
+                                                  aria-describedby="button-addon2">
         <button class="btn btn-outline-secondary" type="submit" id="button-addon2">Поиск</button>
     </form>
 
@@ -21,11 +22,13 @@
                         <span> HP: {{pokemon.hp}} </span>
                         <span> Attack: {{pokemon.attack}} </span>
                     </p>
-                    <form class="col-12 d-flex mb-3 mt-3" action="{{url_for('battle', main_pokemon_name=pokemon.name)}}" method="get"
+                    <form class="col-12 d-flex mb-3 mt-3" action="{{url_for('battle', main_pokemon_name=pokemon.name)}}"
+                          method="get"
                           enctype="multipart/form-data">
                         <button type="submit" class="btn btn-primary">Битва</button>
                     </form>
-                    <form class="col-12 d-flex mb-3 mt-3" action="{{url_for('pokemon_page', pokemon_name=pokemon.name)}}"
+                    <form class="col-12 d-flex mb-3 mt-3"
+                          action="{{url_for('pokemon_page', pokemon_name=pokemon.name)}}"
                           method="get" enctype="multipart/form-data">
                         <button type="submit" class="btn btn-secondary">Подробнее</button>
                     </form>

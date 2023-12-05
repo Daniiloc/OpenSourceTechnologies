@@ -3,3 +3,4 @@
 /Tests/.pytest_cache/
 .idea
 __pycache__
+/.idea
