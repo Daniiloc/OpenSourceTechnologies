@@ -29,6 +29,8 @@ class Battles(db.Model):
     main_pokemon = db.Column(db.String(150), nullable=False)
     opponent_pokemon = db.Column(db.String(150), nullable=False)
     win = db.Column(db.String(150), nullable=False)
+    rounds = db.Column(db.Integer, nullable=False)
+    date = db.Column(db.DateTime(timezone=True), nullable=False, default=db.func.now())
     user_id = db.Column(db.Integer, ForeignKey('users.id'))
 
 
@@ -122,11 +124,11 @@ def auto_fight_history():
     return history
 
 
-def add_row_to_battles():
-    print(current_user.id)
+def add_row_to_battles(rounds: int):
     fight_row = Battles(main_pokemon=session['main_pokemon']['name'],
                         opponent_pokemon=session['opponent_pokemon']['name'],
                         win=winner()['name'],
+                        rounds=rounds,
                         user_id=current_user.id if current_user.is_authenticated else None)
     db.session.add(fight_row)
     db.session.commit()

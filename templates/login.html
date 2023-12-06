@@ -41,16 +41,19 @@
                             {% endfor %}
                         {% endif %}
                     </span>
-                    <span class="mb-1 mt-1 col-12 d-flex justify-content-center">
-                        <a href="{{url_for('auth.forgot_password')}}" class="text-secondary">Забыл пароль</a>
+                    <span class="mb-1 mt-3 col-12 d-flex justify-content-center">
+                        <a href="{{url_for('auth.forgot_password')}}" class="text">Забыл пароль</a>
                     </span>
-                    <span class="mt-4 col-12 d-flex justify-content-center">{{ form.submit(class="btn btn-dark col-12") }}</span>
-                    <span class="mt-2 mb-3 col-12 d-flex justify-content-center">
+                    <span class="mt-4 col-12 d-flex justify-content-center">
+                        {{ form.submit(class="btn btn-outline-dark col-12") }}
+                    </span>
+                    <span class="mt-2 mb-4 col-12 d-flex justify-content-center">
                         <a href="{{url_for('auth.login_yandex_id')}}"
                            class="btn btn-danger col-12">Войти через Яндекс</a>
                     </span>
                     <span class="mb-4 col-12 d-flex justify-content-center">
-                        <a href="{{url_for('auth.sign_up')}}" class="text-dark">Ещё не зарегистрированы? Сделайте это сейчас!</a>
+                        <a href="{{url_for('auth.sign_up')}}"
+                           class="text">Ещё не зарегистрированы? Сделайте это сейчас!</a>
                     </span>
                 </form>
             </div>
