@@ -11,6 +11,9 @@
     <orderEntry type="library" name="sdk-suggest-token-with-polyfills-latest" level="application" />
     <orderEntry type="library" name="bootstrap" level="application" />
   </component>
+  <component name="PackageRequirementsSettings">
+    <option name="keepMatchingSpecifier" value="false" />
+  </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_FOLDERS">
       <list>

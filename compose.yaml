@@ -44,6 +44,16 @@ services:
     volumes:
       - redis-data:/data
 
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: pokemon_grafana
+    restart: always
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana-data:/var/lib/grafana
+
 volumes:
   postgres-data:
   redis-data:
+  grafana-data:

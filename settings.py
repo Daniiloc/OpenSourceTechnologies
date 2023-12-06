@@ -56,14 +56,13 @@ db = SQLAlchemy()
 csrf = CSRFProtect()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
+multiplier = 5
+round_counter = 0
 
+pokemon_names = []
 response = requests.get('https://pokeapi.co/api/v2/pokemon/?limit=1')
 data = response.json()
 response = requests.get(f'https://pokeapi.co/api/v2/pokemon/?limit={data["count"]}')
 data = response.json()
-
-pokemon_names = []
-multiplier = 5
-
 for i in data['results']:
     pokemon_names.append(i['name'])

@@ -2,6 +2,7 @@ from flask_bootstrap import Bootstrap
 
 import send_email
 from api import api
+from generator import generate_data
 from models import *
 from auth import auth
 from flask_caching import CachedResponse
@@ -24,6 +25,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
 db.init_app(app)
 Bootstrap(app)
+
 
 
 @app.route('/')
@@ -89,6 +91,7 @@ def pokemon_page_save(pokemon_name):
 
 @app.route('/<main_pokemon_name>_battle', methods=['GET', 'POST'])
 def battle(main_pokemon_name):
+    global round_counter
     if request.method == 'GET':
         clear_session()
         session['main_pokemon'] = get_pokemon_data(main_pokemon_name)
@@ -98,7 +101,7 @@ def battle(main_pokemon_name):
                 random.choice([pokemon for pokemon in pokemon_names if pokemon != session['main_pokemon']['name']])
 
             session['opponent_pokemon'] = get_pokemon_data(opponent_pokemon_name)
-
+        round_counter = 0
         return render_template('battle.html',
                                main_pokemon=get_pokemon_data(session['main_pokemon']['name']),
                                opponent_pokemon=get_pokemon_data(session['opponent_pokemon']['name']),
@@ -106,7 +109,7 @@ def battle(main_pokemon_name):
     else:
         if 'auto_fight' in request.form:
             history = auto_fight_history()
-            add_row_to_battles()
+            add_row_to_battles(len(history))
             return render_template('battle.html',
                                    main_pokemon=get_pokemon_data(session['main_pokemon']['name']),
                                    opponent_pokemon=get_pokemon_data(session['opponent_pokemon']['name']),
@@ -119,9 +122,9 @@ def battle(main_pokemon_name):
                 players_number = request.form["players_number"]
             except KeyError:
                 players_number = None
-
+            round_counter += 1
             if define_global_win():
-                add_row_to_battles()
+                add_row_to_battles(round_counter)
                 return render_template('battle.html',
                                        main_pokemon=get_pokemon_data(session['main_pokemon']['name']),
                                        opponent_pokemon=get_pokemon_data(session['opponent_pokemon']['name']),
@@ -172,7 +175,8 @@ def email():
 
 
 if __name__ == '__main__':
-    print(app.config['SQLALCHEMY_DATABASE_URI'])
     with app.app_context():
         db.create_all()
+        Battles.query.delete()
+        generate_data(1000)
     app.run(host=os.environ.get('APP_HOST'), port=os.environ.get('APP_PORT'))
